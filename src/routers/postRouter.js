@@ -3,6 +3,7 @@ const postRouter = express.Router();
 const { userAuth } = require('../middlewares/auth');
 const { Post } = require('../models/post');
 const { resolveMentions } = require('../utils/mentions');
+const { cache } = require('../utils/cache');
 
 const USER_PUBLIC_DATA = 'username firstName lastName photoUrl';
 
@@ -35,15 +36,41 @@ postRouter.get('/feed', userAuth, async (req, res) => {
     limit = limit < 1 ? 10 : limit;
     const skip = (page - 1) * limit;
 
+    // Feed content is identical for every viewer (global recency, not
+    // personalized), so this cache is shared across users, not keyed per-user.
+    const cacheKey = `feed:${page}:${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({ message: 'Feed Fetched Successfully', posts: cached });
+    }
+
     // Global recency feed: a brand-new user with zero follows should still see
     // content immediately, not an empty screen telling them to go follow people first.
     const posts = await Post.find({})
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate({ path: 'authorId', select: USER_PUBLIC_DATA });
+      .populate({ path: 'authorId', select: USER_PUBLIC_DATA })
+      .lean();
 
+    cache.set(cacheKey, posts);
     res.json({ message: 'Feed Fetched Successfully', posts });
+  } catch (err) {
+    res.status(400).send('Error : ' + err.message);
+  }
+});
+
+postRouter.get('/feed/new-count', userAuth, async (req, res) => {
+  try {
+    const { since } = req.query;
+    let count = 0;
+    if (since) {
+      const sinceDoc = await Post.findById(since).select('createdAt').lean();
+      if (sinceDoc) {
+        count = await Post.countDocuments({ createdAt: { $gt: sinceDoc.createdAt } });
+      }
+    }
+    res.json({ count });
   } catch (err) {
     res.status(400).send('Error : ' + err.message);
   }
@@ -51,13 +78,13 @@ postRouter.get('/feed', userAuth, async (req, res) => {
 
 postRouter.get('/post/:postId', userAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId).populate({
-      path: 'authorId',
-      select: USER_PUBLIC_DATA,
-    });
+    const post = await Post.findById(req.params.postId)
+      .populate({ path: 'authorId', select: USER_PUBLIC_DATA })
+      .lean();
     if (!post) {
       throw new Error('Post not Found');
     }
+    res.set('Cache-Control', 'private, max-age=60');
     res.json({ message: 'Post Fetched Successfully', post });
   } catch (err) {
     res.status(400).send('Error : ' + err.message);

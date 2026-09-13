@@ -2,3 +2,5 @@ node_modules
 .env
 rules.txt
 FRONTEND_MIGRATION.md
+hosting.txt
+APP_STATE.md

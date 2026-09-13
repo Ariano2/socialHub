@@ -42,7 +42,7 @@ const validateSignUp = (data) => {
   return true;
 };
 const validateProfileUpdate = (data) => {
-  const allowedFields = ['firstName', 'lastName', 'photoUrl', 'about', 'skills'];
+  const allowedFields = ['firstName', 'lastName', 'photoUrl', 'about', 'interests'];
   const isUpdateAllowed = Object.keys(data).every((field) =>
     allowedFields.includes(field)
   );
@@ -66,11 +66,11 @@ const validateProfileUpdate = (data) => {
       if (data?.about.length > 250 || !validator.isAscii(data?.about))
         throw new Error('About is Invalid');
     }
-    if (data?.skills) {
-      if (data?.skills.length > 10) throw new Error('Skills are Invalid');
-      data?.skills.map((skill) => {
-        if (skill.length > 100 || !validator.isAscii(skill))
-          throw new Error('Skills are invalid');
+    if (data?.interests) {
+      if (data?.interests.length > 10) throw new Error('Interests are Invalid');
+      data?.interests.map((interest) => {
+        if (interest.length > 100 || !validator.isAscii(interest))
+          throw new Error('Interests are invalid');
       });
     }
   }

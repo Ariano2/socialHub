@@ -44,15 +44,24 @@ const userSchema = new mongoose.Schema({
       'https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg',
     maxLength: 2083,
   },
-  skills: {
+  interests: {
     type: [String],
     validate(val) {
       if (val.length > 10) {
-        throw new Error('Cannot have more than 10 skills');
+        throw new Error('Cannot have more than 10 interests');
       }
     },
   },
   about: { type: 'String', maxLength: 250 },
+});
+
+// Never serialize the bcrypt hash: routes res.json() whole user documents
+// (/profile/view, /login, /signup, /profile/edit).
+userSchema.set('toJSON', {
+  transform(doc, ret) {
+    delete ret.password;
+    return ret;
+  },
 });
 
 userSchema.methods.generateJWT = async function () {

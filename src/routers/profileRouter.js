@@ -3,6 +3,7 @@ const { userAuth } = require('../middlewares/auth');
 const profileRouter = express.Router();
 const { validateProfileUpdate } = require('../utils/apiValidator');
 const bcrypt = require('bcryptjs');
+const { userCache } = require('../utils/cache');
 
 profileRouter.get('/profile/view', userAuth, async (req, res) => {
   const user = req.user;
@@ -27,6 +28,7 @@ profileRouter.patch('/profile/edit', userAuth, async (req, res) => {
     // update the fields
     await loggedInUser.save();
     // save back to the DATABASE
+    userCache.delete(loggedInUser._id.toString());
     res.json({
       message: 'Profile Updated Successfully',
       loggedInUser,
@@ -46,6 +48,7 @@ profileRouter.patch('/profile/password', userAuth, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     loggedInUser.password = hashedPassword;
     await loggedInUser.save();
+    userCache.delete(loggedInUser._id.toString());
     res.send(
       `Password Updated Successfully for user : ${loggedInUser.firstName}`
     );

@@ -30,10 +30,10 @@ const areMutualFollowers = async (userId, targetId) => {
   return Boolean(followsTarget && followedByTarget);
 };
 
-const initializeSocket = (server) => {
+const initializeSocket = (server, allowedOrigins) => {
   const io = socket(server, {
     cors: {
-      origin: 'http://localhost:5173',
+      origin: allowedOrigins,
       credentials: true,
     },
   });
